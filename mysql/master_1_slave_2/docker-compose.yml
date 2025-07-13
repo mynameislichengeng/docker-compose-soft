@@ -1,0 +1,62 @@
+version: '3.7'
+
+services:
+  # --- 主库服务 ---
+  mysql-master:
+    image: mysql:5.7
+    container_name: mysql-master
+    restart: always
+    ports:
+      # 将主机的3306端口映射到容器的3306端口
+      - "3306:3306"
+    volumes:
+      # 挂载配置文件、数据目录和初始化脚本
+      - ./master/conf:/etc/mysql/conf.d
+      - ./master/data:/var/lib/mysql
+    environment:
+      # 设置root用户的密码
+      - MYSQL_ROOT_PASSWORD=123456
+    networks:
+      - mysql-net
+
+  # --- 从库1服务 ---
+  mysql-slave1:
+    image: mysql:5.7
+    container_name: mysql-slave1
+    restart: always
+    ports:
+      # 端口映射要错开，避免冲突
+      - "3307:3306"
+    volumes:
+      - ./slave1/conf:/etc/mysql/conf.d
+      - ./slave1/data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+    depends_on:
+      # 确保主库启动后再启动从库
+      - mysql-master
+    networks:
+      - mysql-net
+
+  # --- 从库2服务 ---
+  mysql-slave2:
+    image: mysql:5.7
+    container_name: mysql-slave2
+    restart: always
+    ports:
+      # 端口映射再次错开
+      - "3308:3306"
+    volumes:
+      - ./slave2/conf:/etc/mysql/conf.d
+      - ./slave2/data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+    depends_on:
+      - mysql-master
+    networks:
+      - mysql-net
+
+# --- 网络定义 ---
+networks:
+  mysql-net:
+    driver: bridge
